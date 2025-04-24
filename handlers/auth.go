@@ -1,19 +1,20 @@
 package handlers
 
 import (
+	"database/sql"
 	"html/template"
 	"net/http"
-	"sync"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
-	users = make(map[string]User)
-	mu    sync.RWMutex
-	tmpl  *template.Template
+	db   *sql.DB
+	tmpl *template.Template
 )
 
 // User represents a registered user
 type User struct {
+	ID       int
 	Username string
 	Password string
 	IsAdmin  bool
@@ -22,6 +23,29 @@ type User struct {
 // TemplateData holds data for template rendering
 type TemplateData struct {
 	Error string
+}
+
+func InitDB(databasePath string) error {
+	var err error
+	db, err = sql.Open("sqlite3", databasePath)
+	if err != nil {
+		return err
+	}
+
+	// Create users table if it doesn't exist
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password TEXT NOT NULL,
+		is_admin BOOLEAN DEFAULT FALSE
+	);`
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {
@@ -45,11 +69,10 @@ func AuthLoginHandler(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		mu.RLock()
-		user, exists := users[username]
-		mu.RUnlock()
-
-		if !exists || user.Password != password {
+		var user User
+		err := db.QueryRow("SELECT id, username, password, is_admin FROM users WHERE username = ?", username).
+			Scan(&user.ID, &user.Username, &user.Password, &user.IsAdmin)
+		if err != nil || user.Password != password {
 			data.Error = "Invalid username or password"
 			tmpl.ExecuteTemplate(w, "login.html", data)
 			return
@@ -80,23 +103,12 @@ func AuthRegisterHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		mu.RLock()
-		_, exists := users[username]
-		mu.RUnlock()
-
-		if exists {
-			data.Error = "Username already exists"
+		_, err := db.Exec("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", username, password, false)
+		if err != nil {
+			data.Error = "Username already exists or registration failed"
 			tmpl.ExecuteTemplate(w, "register.html", data)
 			return
 		}
-
-		mu.Lock()
-		users[username] = User{
-			Username: username,
-			Password: password,
-			IsAdmin:  false,
-		}
-		mu.Unlock()
 
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

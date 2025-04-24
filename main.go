@@ -8,8 +8,16 @@ import (
 )
 
 func main() {
+	// Initialize database
+	err := handlers.InitDB("./webapp.db")
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	
 	// Main routes
 	http.HandleFunc("/", handlers.HomeHandler)
+	http.HandleFunc("/canecas", handlers.CanecasHandler)
+	http.HandleFunc("/camisas", handlers.CamisasHandler)
 
 	// Auth routes
 	http.HandleFunc("/login", handlers.AuthLoginHandler)
