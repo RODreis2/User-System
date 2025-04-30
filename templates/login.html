@@ -1,24 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Votação</title>
 </head>
 <body>
-    <h2>Login</h2>
-    {{if .Error}}
-    <div>{{.Error}}</div>
-    {{end}}
-    <form action="/login" method="POST">
-        <div>
-            <label>Username:</label>
-            <input type="text" name="username" required>
-        </div>
-        <div>
-            <label>Password:</label>
-            <input type="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="/register">Register here</a></p>
+    <div>
+        <h1>Login</h1>
+        <p>Faça login na sua conta.</p>
+        <form action="/login" method="POST">
+            <label for="username">Usuário:</label><br>
+            <input type="text" id="username" name="username" required><br>
+            <label for="password">Senha:</label><br>
+            <input type="password" id="password" name="password" required><br><br>
+            <input type="submit" value="Entrar">
+        </form>
+        <a href="/"><button>Voltar</button></a>
+    </div>
 </body>
-</html> 
+</html>

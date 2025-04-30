@@ -2,51 +2,229 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"log"
+	"html/template"
 	"net/http"
-	"web-app/handlers"
+	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
+var db *sql.DB
+
 func main() {
-	// Initialize database
-	err := handlers.InitDB("./webapp.db")
+	// Conex√£o com o banco de dados SQLite
+	var err error
+	db, err = sql.Open("sqlite3", "./database.db")
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		panic(err)
 	}
-	
-	// Main routes
-	http.HandleFunc("/", handlers.HomeHandler)
+	defer db.Close()
 
-	// Auth routes
-	http.HandleFunc("/login", handlers.AuthLoginHandler)
-	http.HandleFunc("/register", handlers.AuthRegisterHandler)
+	// Cria√ß√£o da tabela de usu√°rios, se n√£o existir (sem o campo email)
+	createUsersTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	);`
+	_, err = db.Exec(createUsersTable)
+	if err != nil {
+		panic(err)
+	}
 
-	// User routes
-	http.HandleFunc("/profile", handlers.UserProfileHandler)
-	http.HandleFunc("/profile/update", handlers.UserUpdateProfileHandler)
-	http.HandleFunc("/profile/change-password", handlers.UserChangePasswordHandler)
+	// Cria√ß√£o da tabela de admins, se n√£o existir
+	createAdminsTable := `
+	CREATE TABLE IF NOT EXISTS admins (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	);`
+	_, err = db.Exec(createAdminsTable)
+	if err != nil {
+		panic(err)
+	}
 
-	// Admin routes
-	http.HandleFunc("/admin", handlers.AdminDashboardHandler)
-	http.HandleFunc("/admin/users", handlers.AdminUsersManagementHandler)
+	// Configura√ß√£o do servidor de arquivos est√°ticos
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Order routes
-	http.HandleFunc("/orders", handlers.OrderListHandler)
-	http.HandleFunc("/orders/create", handlers.OrderCreateHandler)
-	http.HandleFunc("/orders/view", handlers.OrderGetHandler)
+	// Rotas
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/camisas", camisasHandler)
+	http.HandleFunc("/canecas", canecasHandler)
+	http.HandleFunc("/registrar", registrarHandler)
 
-	fmt.Printf("Starting server at port 8080\n")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+	fmt.Println("Servidor rodando em http://localhost:8080")
+	http.ListenAndServe(":8080", nil)
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		http.Error(w, "Erro ao carregar a p√°gina inicial", http.StatusInternalServerError)
+		return
+	}
+	message := r.URL.Query().Get("message")
+	data := struct {
+		Message string
+	}{
+		Message: message,
+	}
+	tmpl.Execute(w, data)
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl, err := template.ParseFiles("templates/login.html")
+		if err != nil {
+			http.Error(w, "Erro ao carregar a p√°gina de login", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+		return
+	}
+
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+
+		// Buscar usu√°rio no banco de dados
+		var storedPassword string
+		err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedPassword)
+		if err == sql.ErrNoRows {
+			http.Error(w, "Usu√°rio n√£o encontrado", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Erro ao buscar usu√°rio", http.StatusInternalServerError)
+			return
+		}
+
+		// Verificar senha
+		err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password))
+		if err != nil {
+			http.Error(w, "Senha incorreta", http.StatusBadRequest)
+			return
+		}
+
+		// Redirecionar para a p√°gina inicial com mensagem de sucesso
+		http.Redirect(w, r, "/?message=Login+realizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl, err := template.ParseFiles("templates/admin.html")
+		if err != nil {
+			http.Error(w, "Erro ao carregar a p√°gina de admin", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+		return
+	}
+
+	if r.Method == "POST" {
+		username := r.FormValue("admin_username")
+		password := r.FormValue("admin_password")
+
+		// Buscar admin no banco de dados
+		var storedPassword string
+		err := db.QueryRow("SELECT password FROM admins WHERE username = ?", username).Scan(&storedPassword)
+		if err == sql.ErrNoRows {
+			http.Error(w, "Usu√°rio admin n√£o encontrado", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Erro ao buscar usu√°rio admin", http.StatusInternalServerError)
+			return
+		}
+
+		// Verificar senha
+		err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password))
+		if err != nil {
+			http.Error(w, "Senha incorreta para admin", http.StatusBadRequest)
+			return
+		}
+
+		// Redirecionar para a p√°gina inicial com mensagem de sucesso
+		http.Redirect(w, r, "/?message=Login+admin+realizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+}
+
+func camisasHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/camisas.html")
+	if err != nil {
+		http.Error(w, "Erro ao carregar a p√°gina de camisas", http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, nil)
+}
+
+func canecasHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/canecas.html")
+	if err != nil {
+		http.Error(w, "Erro ao carregar a p√°gina de canecas", http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, nil)
+}
+
+func registrarHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl, err := template.ParseFiles("templates/registrar.html")
+		if err != nil {
+			http.Error(w, "Erro ao carregar a p√°gina de registro", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+		return
+	}
+
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		confirmPassword := r.FormValue("confirm_password")
+
+		// Verificar se as senhas coincidem
+		if password != confirmPassword {
+			http.Error(w, "Erro ao registrar: as senhas n√£o coincidem", http.StatusBadRequest)
+			return
+		}
+
+		// Criptografar a senha
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "Erro ao processar o registro", http.StatusInternalServerError)
+			return
+		}
+
+		// Inserir no banco de dados (sem email)
+		_, err = db.Exec("INSERT INTO users (username, password) VALUES (?, ?)", username, hashedPassword)
+		if err != nil {
+			http.Error(w, "Erro ao registrar: usu√°rio j√° existe", http.StatusBadRequest)
+			return
+		}
+
+		// Redirecionar para a p√°gina inicial com mensagem de sucesso
+		http.Redirect(w, r, "/?message=Registro+realizado+com+sucesso", http.StatusSeeOther)
+		return
 	}
 }
 ===== ./go.mod =====
 module web-app
 
-go 1.21
+go 1.23.0
+
+toolchain go1.24.2
 
 require github.com/mattn/go-sqlite3 v1.14.22
+
+require golang.org/x/crypto v0.37.0 // indirect
 
 ===== ./README.md =====
 # Simple Go Web Server
@@ -73,29 +251,27 @@ This is a basic web server written in Go that serves a simple welcome message.
 - `go.mod` - Go module file for dependency management 
 ===== ./templates/login.html =====
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Vota√ß√£o</title>
 </head>
 <body>
-    <h2>Login</h2>
-    {{if .Error}}
-    <div>{{.Error}}</div>
-    {{end}}
-    <form action="/login" method="POST">
-        <div>
-            <label>Username:</label>
-            <input type="text" name="username" required>
-        </div>
-        <div>
-            <label>Password:</label>
-            <input type="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="/register">Register here</a></p>
+    <div>
+        <h1>Login</h1>
+        <p>Fa√ßa login na sua conta.</p>
+        <form action="/login" method="POST">
+            <label for="username">Usu√°rio:</label><br>
+            <input type="text" id="username" name="username" required><br>
+            <label for="password">Senha:</label><br>
+            <input type="password" id="password" name="password" required><br><br>
+            <input type="submit" value="Entrar">
+        </form>
+        <a href="/"><button>Voltar</button></a>
+    </div>
 </body>
-</html> 
+</html>
 ===== ./templates/register.html =====
 <!DOCTYPE html>
 <html>
@@ -125,11 +301,136 @@ This is a basic web server written in Go that serves a simple welcome message.
     <p>Already have an account? <a href="/login">Login here</a></p>
 </body>
 </html> 
+===== ./templates/canecas.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canecas - Sistema de Vota√ß√£o</title>
+</head>
+<body>
+    <div>
+        <h1>Canecas</h1>
+        <p>Escolha sua caneca favorita.</p>
+        <a href="/"><button>Voltar</button></a>
+    </div>
+</body>
+</html>
+===== ./templates/camisas.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camisas - Sistema de Vota√ß√£o</title>
+</head>
+<body>
+    <div>
+        <h1>Camisas</h1>
+        <p>Escolha sua camisa favorita.</p>
+        <a href="/"><button>Voltar</button></a>
+    </div>
+</body>
+</html>
+===== ./templates/home.html =====
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Welcome to the Web App</h1>
+        <div class="mt-3">
+            <a href="/canecas" class="btn btn-primary">Canecas</a>
+            <a href="/camisas" class="btn btn-primary">Camisas</a>
+            <a href="/login" class="btn btn-primary">Login</a>
+            <a href="/register" class="btn btn-primary">Register</a>
+        </div>
+    </div>
+</body>
+</html>
+===== ./templates/index.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Vota√ß√£o</title>
+</head>
+<body>
+    <div>
+        <h1>Bem-vindo ao Sistema de Vota√ß√£o</h1>
+        {{ if .Message }}
+        <p>{{ .Message }}</p>
+        {{ end }}
+        <a href="/login"><button>Login</button></a>
+        <a href="/admin"><button>Admin</button></a>
+        <a href="/camisas"><button>Camisas</button></a>
+        <a href="/canecas"><button>Canecas</button></a>
+        <a href="/registrar"><button>Registrar-se</button></a>
+        <a href="https://wa.me/5531983409568" target="_blank"><button>Contato WhatsApp</button></a>
+    </div>
+</body>
+</html>
+===== ./templates/admin.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sistema de Vota√ß√£o</title>
+</head>
+<body>
+    <div>
+        <h1>Painel de Administra√ß√£o</h1>
+        <p>Bem-vindo √† √°rea de administra√ß√£o.</p>
+        <form action="/admin" method="POST">
+            <label for="admin_username">Usu√°rio Admin:</label><br>
+            <input type="text" id="admin_username" name="admin_username" required><br>
+            <label for="admin_password">Senha Admin:</label><br>
+            <input type="password" id="admin_password" name="admin_password" required><br><br>
+            <input type="submit" value="Entrar como Admin">
+        </form>
+        <a href="/"><button>Voltar</button></a>
+        <a href="/camisas"><button>Camisas</button></a>
+        <a href="/canecas"><button>Canecas</button></a>
+    </div>
+</body>
+</html>
+===== ./templates/registrar.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar-se - Sistema de Vota√ß√£o</title>
+</head>
+<body>
+    <div>
+        <h1>Registro</h1>
+        <p>Crie sua conta aqui.</p>
+        <form action="/registrar" method="POST">
+            <label for="username">Usu√°rio:</label><br>
+            <input type="text" id="username" name="username" required><br>
+            <label for="password">Senha:</label><br>
+            <input type="password" id="password" name="password" required><br>
+            <label for="confirm_password">Confirmar Senha:</label><br>
+            <input type="password" id="confirm_password" name="confirm_password" required><br><br>
+            <input type="submit" value="Registrar">
+        </form>
+        <a href="/"><button>Voltar</button></a>
+    </div>
+</body>
+</html>
 ===== ./handlers/handlers.go =====
 package handlers
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -139,20 +440,50 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<title>Welcome</title>
-		</head>
-		<body>
-			<h2>Welcome to the Go Web Server!</h2>
-			<button onclick="window.location.href='/login'">Login</button> | 
-			<button onclick="window.location.href='/register'">Register</button>
-		</body>
-		</html>
-	`)
+	tmpl, err := template.ParseFiles("templates/home.html")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error parsing template:", err)
+		return
+	}
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error executing template:", err)
+		return
+	}
+}
+
+// CanecasHandler handles the canecas page
+func CanecasHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/canecas.html")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error parsing template:", err)
+		return
+	}
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error executing template:", err)
+		return
+	}
+}
+
+// CamisasHandler handles the camisas page
+func CamisasHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/camisas.html")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error parsing template:", err)
+		return
+	}
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Println("Error executing template:", err)
+		return
+	}
 }
 
 // NotFoundHandler handles 404 errors
@@ -380,6 +711,8 @@ func UserChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 ===== ./go.sum =====
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+golang.org/x/crypto v0.37.0 h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=
+golang.org/x/crypto v0.37.0/go.mod h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=
 
 ===== ./webapp.db =====
 SQLite format 3   @                                                                     .vâ¯ ∆ Õ∆                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    P++Ytablesqlite_sequencesqlite_sequenceCREATE TABLE sqlite_sequence(name,seq)Å2ÇCtableusersusersCREATE TABLE users (
@@ -389,3 +722,101 @@ SQLite format 3   @                                                     
 		is_admin BOOLEAN DEFAULT FALSE
 	))= indexsqlite_autoindex_users_1users          ‹ Ì‹                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 porrasalve savefortnite
    Ó Ó¯                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  	porra	save   ı ı                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           	users
+===== ./.gitignore =====
+node_modules/
+private/
+===== ./private/credentials.json =====
+{
+  "admin": {
+    "username": "admin",
+    "password": "sua_senha_secreta_aqui"
+  }
+}
+===== ./static/index.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #message {
+            margin-top: 10px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <form id="loginForm">
+        <h2>Login Admin</h2>
+        <input type="text" id="username" name="username" placeholder="Usu√°rio" required>
+        <input type="password" id="password" name="password" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
+        <div id="message"></div>
+    </form>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const response = await fetch('/admin/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await response.json();
+            document.getElementById('message').textContent = data.message;
+            document.getElementById('message').style.color = response.ok ? 'green' : 'red';
+        });
+    </script>
+</body>
+</html>
+===== ./database.db =====
+SQLite format 3   @                                                                     .vâ¯ % :ÕË%ª                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ÅÇtableadminsadminsCREATE TABLE admins (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	)+? indexsqlite_autoindex_admins_1adminsP++Ytablesqlite_sequencesqlite_sequenceCREATE TABLE sqlite_sequence(name,seq)ÅÅtableusersusersCREATE TABLE users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	))= indexsqlite_autoindex_users_1users          π π                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               E Åfoto$2a$10$HVQxBIMEXuFb0MV/YmIcUe.xI3vfWMr9QvLWDKawRWYLhQyOp6s8i
+   ¯ ¯                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              	foto   ˆ ˆ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            	users                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
