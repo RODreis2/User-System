@@ -4,17 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Bem-vindo ao sistema de votação</h1>
-        <div>
-            <button onclick="window.location.href='/login'">Login</button>
-            <button onclick="window.location.href='/register'">Registro</button>
-            <button onclick="window.location.href='/camisas'">Camisas</button>
-            <button onclick="window.location.href='/canecas'">Canecas</button>
-            <button onclick="window.location.href='/admin'">Admin</button>
-            <button onclick="window.location.href='/whatsapp'">WhatsApp</button>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Bem-vindo ao sistema de votação</h1>
+            <div>
+                <button onclick="window.location.href='/login'">Login</button>
+                <button onclick="window.location.href='/register'">Registro</button>
+                <button onclick="window.location.href='/camisas'">Camisas</button>
+                <button onclick="window.location.href='/canecas'">Canecas</button>
+                <button onclick="window.location.href='/admin'">Admin</button>
+                <button onclick="window.location.href='/whatsapp'">WhatsApp</button>
+            </div>
         </div>
     </div>
 </body>

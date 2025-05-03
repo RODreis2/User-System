@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Painel de Controle Admin</h1>
+            <p>Gerencie produtos e configurações do WhatsApp.</p>
+            
+            <h2>Editar Produtos</h2>
+            <form action="/admin/update_products" method="POST">
+                <label for="product_type">Tipo de Produto:</label><br>
+                <select id="product_type" name="product_type" required>
+                    <option value="camisas">Camisas</option>
+                    <option value="canecas">Canecas</option>
+                </select><br>
+                <label for="product_name">Nome do Produto:</label><br>
+                <input type="text" id="product_name" name="product_name" required><br>
+                <label for="product_description">Descrição:</label><br>
+                <textarea id="product_description" name="product_description" rows="3" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;"></textarea><br>
+                <input type="submit" value="Adicionar/Atualizar Produto">
+            </form>
+
+            <h2>Editar Número do WhatsApp</h2>
+            <form action="/admin/update_whatsapp" method="POST">
+                <label for="whatsapp_number">Número do WhatsApp (formato: +5511999999999):</label><br>
+                <input type="text" id="whatsapp_number" name="whatsapp_number" placeholder="+5511999999999" required><br>
+                <input type="submit" value="Atualizar Número do WhatsApp">
+            </form>
+
+            <a href="/"><button>Voltar</button></a>
+        </div>
+    </div>
+</body>
+</html>

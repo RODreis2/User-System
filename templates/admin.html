@@ -4,21 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Painel de Administração</h1>
-        <p>Bem-vindo à área de administração.</p>
-        <form action="/admin" method="POST">
-            <label for="admin_username">Usuário Admin:</label><br>
-            <input type="text" id="admin_username" name="admin_username" required><br>
-            <label for="admin_password">Senha Admin:</label><br>
-            <input type="password" id="admin_password" name="admin_password" required><br><br>
-            <input type="submit" value="Entrar como Admin">
-        </form>
-        <a href="/"><button>Voltar</button></a>
-        <a href="/camisas"><button>Camisas</button></a>
-        <a href="/canecas"><button>Canecas</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Painel de Administração</h1>
+            <p>Bem-vindo à área de administração.</p>
+            <form action="/admin" method="POST">
+                <label for="admin_username">Usuário Admin:</label><br>
+                <input type="text" id="admin_username" name="admin_username" required><br>
+                <label for="admin_password">Senha Admin:</label><br>
+                <input type="password" id="admin_password" name="admin_password" required><br><br>
+                <input type="submit" value="Entrar como Admin">
+            </form>
+            <a href="/"><button>Voltar</button></a>
+            <a href="/camisas"><button>Camisas</button></a>
+            <a href="/canecas"><button>Canecas</button></a>
+        </div>
     </div>
 </body>
 </html>

@@ -4,12 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canecas - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Canecas</h1>
-        <p>Escolha sua caneca favorita.</p>
-        <a href="/"><button>Voltar</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Canecas</h1>
+            <p>Escolha sua caneca favorita.</p>
+            <div>
+                {{range .Products}}
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3>{{.Name}}</h3>
+                    <p>{{.Description}}</p>
+                </div>
+                {{else}}
+                <p>Nenhuma caneca cadastrada no momento.</p>
+                {{end}}
+            </div>
+            <a href="/"><button>Voltar</button></a>
+        </div>
     </div>
 </body>
 </html>

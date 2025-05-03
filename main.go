@@ -11,6 +11,13 @@ import (
 
 var db *sql.DB
 
+type Product struct {
+	ID          int
+	Type        string
+	Name        string
+	Description string
+}
+
 func main() {
 	// Conexão com o banco de dados SQLite
 	var err error
@@ -44,6 +51,53 @@ func main() {
 		panic(err)
 	}
 
+	// Criação da tabela de produtos, se não existir
+	createProductsTable := `
+	CREATE TABLE IF NOT EXISTS products (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT
+	);`
+	_, err = db.Exec(createProductsTable)
+	if err != nil {
+		panic(err)
+	}
+
+	// Criação da tabela de configurações, se não existir (para o número do WhatsApp)
+	createSettingsTable := `
+	CREATE TABLE IF NOT EXISTS settings (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		key TEXT UNIQUE NOT NULL,
+		value TEXT NOT NULL
+	);`
+	_, err = db.Exec(createSettingsTable)
+	if err != nil {
+		panic(err)
+	}
+
+	// Adicionar um administrador padrão se não existir
+	defaultAdminUsername := "admin"
+	defaultAdminPassword := "admin123"
+	var adminCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM admins WHERE username = ?", defaultAdminUsername).Scan(&adminCount)
+	if err != nil {
+		panic(err)
+	}
+	if adminCount == 0 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(defaultAdminPassword), bcrypt.DefaultCost)
+		if err != nil {
+			panic(err)
+		}
+		_, err = db.Exec("INSERT INTO admins (username, password) VALUES (?, ?)", defaultAdminUsername, hashedPassword)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Administrador padrão criado: username=admin, password=admin123")
+	} else {
+		fmt.Println("Administrador padrão já existe.")
+	}
+
 	// Configuração do servidor de arquivos estáticos
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -52,9 +106,13 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/admin/dashboard", adminDashboardHandler)
+	http.HandleFunc("/admin/update_products", adminUpdateProductsHandler)
+	http.HandleFunc("/admin/update_whatsapp", adminUpdateWhatsAppHandler)
 	http.HandleFunc("/camisas", camisasHandler)
 	http.HandleFunc("/canecas", canecasHandler)
 	http.HandleFunc("/registrar", registrarHandler)
+	http.HandleFunc("/whatsapp", whatsappHandler)
 
 	fmt.Println("Servidor rodando em http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
@@ -149,10 +207,58 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Redirecionar para a página inicial com mensagem de sucesso
-		http.Redirect(w, r, "/?message=Login+admin+realizado+com+sucesso", http.StatusSeeOther)
+		// Redirecionar para o painel de administração
+		http.Redirect(w, r, "/admin/dashboard", http.StatusSeeOther)
 		return
 	}
+}
+
+func adminDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl, err := template.ParseFiles("templates/admin_dashboard.html")
+		if err != nil {
+			http.Error(w, "Erro ao carregar o painel de admin", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+		return
+	}
+}
+
+func adminUpdateProductsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		productType := r.FormValue("product_type")
+		productName := r.FormValue("product_name")
+		productDescription := r.FormValue("product_description")
+
+		// Inserir ou atualizar produto no banco de dados
+		_, err := db.Exec("INSERT OR REPLACE INTO products (type, name, description) VALUES (?, ?, ?)", productType, productName, productDescription)
+		if err != nil {
+			http.Error(w, "Erro ao atualizar produto", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/admin/dashboard?message=Produto+atualizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+}
+
+func adminUpdateWhatsAppHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		whatsappNumber := r.FormValue("whatsapp_number")
+
+		// Atualizar número do WhatsApp no banco de dados
+		_, err := db.Exec("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", "whatsapp_number", whatsappNumber)
+		if err != nil {
+			http.Error(w, "Erro ao atualizar número do WhatsApp", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/admin/dashboard?message=Número+do+WhatsApp+atualizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 }
 
 func camisasHandler(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +267,31 @@ func camisasHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro ao carregar a página de camisas", http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	rows, err := db.Query("SELECT id, type, name, description FROM products WHERE type = 'camisas'")
+	if err != nil {
+		http.Error(w, "Erro ao buscar produtos", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Type, &p.Name, &p.Description); err != nil {
+			http.Error(w, "Erro ao ler produtos", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
+	data := struct {
+		Products []Product
+	}{
+		Products: products,
+	}
+
+	tmpl.Execute(w, data)
 }
 
 func canecasHandler(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +300,48 @@ func canecasHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro ao carregar a página de canecas", http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	rows, err := db.Query("SELECT id, type, name, description FROM products WHERE type = 'canecas'")
+	if err != nil {
+		http.Error(w, "Erro ao buscar produtos", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Type, &p.Name, &p.Description); err != nil {
+			http.Error(w, "Erro ao ler produtos", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
+	data := struct {
+		Products []Product
+	}{
+		Products: products,
+	}
+
+	tmpl.Execute(w, data)
+}
+
+func whatsappHandler(w http.ResponseWriter, r *http.Request) {
+	var whatsappNumber string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = ?", "whatsapp_number").Scan(&whatsappNumber)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Número do WhatsApp não configurado", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Erro ao buscar número do WhatsApp", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirecionar para o WhatsApp
+	redirectURL := fmt.Sprintf("https://wa.me/%s", whatsappNumber)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func registrarHandler(w http.ResponseWriter, r *http.Request) {
