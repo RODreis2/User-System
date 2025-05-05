@@ -3,33 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar-se - Sistema de Votação</title>
+    <title>Registro - Loja de Produtos Personalizados</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <nav>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="logo">Loja Personalizada</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/produtos">Produtos</a>
+                    <a href="/login">Login</a>
+                    <a href="/registrar">Registro</a>
+                    <a href="/admin">Admin</a>
+                    <a href="/whatsapp" class="whatsapp-btn">Contato WhatsApp</a>
+                    <a href="/carrinho" class="cart-btn">Carrinho ({{.CartCount}})</a>
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <section class="register-section">
+            <div class="container">
+                <div class="register-card">
+                    <h1>Registro</h1>
+                    <p>Crie sua conta aqui.</p>
+                    <form action="/registrar" method="POST">
+                        <div class="form-group">
+                            <label for="username">Usuário:</label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Senha:</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password">Confirmar Senha:</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Registrar</button>
+                    </form>
+                    <p>Já tem uma conta? <a href="/login">Faça login aqui</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
         <div class="container">
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-            <a href="/register">Registro</a>
-            <a href="/admin">Admin</a>
+            <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
         </div>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <h1>Registro</h1>
-            <p>Crie sua conta aqui.</p>
-            <form action="/registrar" method="POST">
-                <label for="username">Usuário:</label><br>
-                <input type="text" id="username" name="username" required><br>
-                <label for="password">Senha:</label><br>
-                <input type="password" id="password" name="password" required><br>
-                <label for="confirm_password">Confirmar Senha:</label><br>
-                <input type="password" id="confirm_password" name="confirm_password" required><br><br>
-                <input type="submit" value="Registrar">
-            </form>
-            <a href="/"><button>Voltar</button></a>
-        </div>
-    </div>
+    </footer>
+    <script src="/static/scripts.js"></script>
 </body>
 </html>

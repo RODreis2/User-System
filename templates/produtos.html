@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos - Loja de Produtos Personalizados</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="logo">Loja Personalizada</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/produtos">Produtos</a>
+                    <a href="/login">Login</a>
+                    <a href="/registrar">Registro</a>
+                    <a href="/admin">Admin</a>
+                    <a href="/whatsapp" class="whatsapp-btn">Contato WhatsApp</a>
+                    <a href="/carrinho" class="cart-btn">Carrinho ({{.CartCount}})</a>
+                    {{if .IsLoggedIn}}
+                    <a href="/logout" class="logout-btn">Logout</a>
+                    {{end}}
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <section class="products-section">
+            <div class="container">
+                <h1>Nossos Produtos</h1>
+                <div class="product-grid">
+                    {{range .Products}}
+                    <div class="product-card">
+                        <div class="product-img" style="background-image: url('{{if .Images}}{{index .Images 0}}{{else}}/static/placeholder.jpg{{end}}');"></div>
+                        <h3>{{.Name}}</h3>
+                        <p class="price">R$ {{.Price}}</p>
+                        <button class="btn-secondary" onclick="addToCart({{.ID}})">Adicionar ao Carrinho</button>
+                    </div>
+                    {{else}}
+                    <p class="no-products">Nenhum produto cadastrado no momento.</p>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+    <script src="/static/scripts.js"></script>
+    <script>
+        function addToCart(productId) {
+            fetch('/carrinho/add/' + productId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Produto adicionado ao carrinho!');
+                        document.querySelector('.cart-btn').textContent = `Carrinho (${data.cartCount})`;
+                    } else {
+                        alert('Erro ao adicionar produto ao carrinho. Faça login primeiro.');
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

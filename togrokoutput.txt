@@ -5,21 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Painel de Administração</h1>
-        <p>Bem-vindo à área de administração.</p>
-        <form action="/admin" method="POST">
-            <label for="admin_username">Usuário Admin:</label><br>
-            <input type="text" id="admin_username" name="admin_username" required><br>
-            <label for="admin_password">Senha Admin:</label><br>
-            <input type="password" id="admin_password" name="admin_password" required><br><br>
-            <input type="submit" value="Entrar como Admin">
-        </form>
-        <a href="/"><button>Voltar</button></a>
-        <a href="/camisas"><button>Camisas</button></a>
-        <a href="/canecas"><button>Canecas</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Painel de Administração</h1>
+            <p>Bem-vindo à área de administração.</p>
+            <form action="/admin" method="POST">
+                <label for="admin_username">Usuário Admin:</label><br>
+                <input type="text" id="admin_username" name="admin_username" required><br>
+                <label for="admin_password">Senha Admin:</label><br>
+                <input type="password" id="admin_password" name="admin_password" required><br><br>
+                <input type="submit" value="Entrar como Admin">
+            </form>
+            <a href="/"><button>Voltar</button></a>
+            <a href="/camisas"><button>Camisas</button></a>
+            <a href="/canecas"><button>Canecas</button></a>
+        </div>
     </div>
 </body>
 </html>
@@ -30,17 +41,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Bem-vindo ao sistema de votação</h1>
-        <div>
-            <button onclick="window.location.href='/login'">Login</button>
-            <button onclick="window.location.href='/register'">Registro</button>
-            <button onclick="window.location.href='/camisas'">Camisas</button>
-            <button onclick="window.location.href='/canecas'">Canecas</button>
-            <button onclick="window.location.href='/admin'">Admin</button>
-            <button onclick="window.location.href='/whatsapp'">WhatsApp</button>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Bem-vindo ao sistema de votação</h1>
+            <div>
+                <button onclick="window.location.href='/login'">Login</button>
+                <button onclick="window.location.href='/register'">Registro</button>
+                <button onclick="window.location.href='/camisas'">Camisas</button>
+                <button onclick="window.location.href='/canecas'">Canecas</button>
+                <button onclick="window.location.href='/admin'">Admin</button>
+                <button onclick="window.location.href='/whatsapp'">WhatsApp</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+===== ./templates/admin_dashboard.html =====
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Painel de Controle Admin</h1>
+            <p>Gerencie produtos e configurações do WhatsApp.</p>
+            
+            <h2>Editar Produtos</h2>
+            <form action="/admin/update_products" method="POST">
+                <label for="product_type">Tipo de Produto:</label><br>
+                <select id="product_type" name="product_type" required>
+                    <option value="camisas">Camisas</option>
+                    <option value="canecas">Canecas</option>
+                </select><br>
+                <label for="product_name">Nome do Produto:</label><br>
+                <input type="text" id="product_name" name="product_name" required><br>
+                <label for="product_description">Descrição:</label><br>
+                <textarea id="product_description" name="product_description" rows="3" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;"></textarea><br>
+                <input type="submit" value="Adicionar/Atualizar Produto">
+            </form>
+
+            <h2>Editar Número do WhatsApp</h2>
+            <form action="/admin/update_whatsapp" method="POST">
+                <label for="whatsapp_number">Número do WhatsApp (formato: +5511999999999):</label><br>
+                <input type="text" id="whatsapp_number" name="whatsapp_number" placeholder="+5511999999999" required><br>
+                <input type="submit" value="Atualizar Número do WhatsApp">
+            </form>
+
+            <a href="/"><button>Voltar</button></a>
         </div>
     </div>
 </body>
@@ -52,21 +123,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar-se - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Registro</h1>
-        <p>Crie sua conta aqui.</p>
-        <form action="/registrar" method="POST">
-            <label for="username">Usuário:</label><br>
-            <input type="text" id="username" name="username" required><br>
-            <label for="password">Senha:</label><br>
-            <input type="password" id="password" name="password" required><br>
-            <label for="confirm_password">Confirmar Senha:</label><br>
-            <input type="password" id="confirm_password" name="confirm_password" required><br><br>
-            <input type="submit" value="Registrar">
-        </form>
-        <a href="/"><button>Voltar</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Registro</h1>
+            <p>Crie sua conta aqui.</p>
+            <form action="/registrar" method="POST">
+                <label for="username">Usuário:</label><br>
+                <input type="text" id="username" name="username" required><br>
+                <label for="password">Senha:</label><br>
+                <input type="password" id="password" name="password" required><br>
+                <label for="confirm_password">Confirmar Senha:</label><br>
+                <input type="password" id="confirm_password" name="confirm_password" required><br><br>
+                <input type="submit" value="Registrar">
+            </form>
+            <a href="/"><button>Voltar</button></a>
+        </div>
     </div>
 </body>
 </html>
@@ -77,12 +159,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canecas - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Canecas</h1>
-        <p>Escolha sua caneca favorita.</p>
-        <a href="/"><button>Voltar</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Canecas</h1>
+            <p>Escolha sua caneca favorita.</p>
+            <div>
+                {{range .Products}}
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3>{{.Name}}</h3>
+                    <p>{{.Description}}</p>
+                </div>
+                {{else}}
+                <p>Nenhuma caneca cadastrada no momento.</p>
+                {{end}}
+            </div>
+            <a href="/"><button>Voltar</button></a>
+        </div>
     </div>
 </body>
 </html>
@@ -93,19 +196,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Login</h1>
-        <p>Faça login na sua conta.</p>
-        <form action="/login" method="POST">
-            <label for="username">Usuário:</label><br>
-            <input type="text" id="username" name="username" required><br>
-            <label for="password">Senha:</label><br>
-            <input type="password" id="password" name="password" required><br><br>
-            <input type="submit" value="Entrar">
-        </form>
-        <a href="/"><button>Voltar</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Login</h1>
+            <p>Faça login na sua conta.</p>
+            <form action="/login" method="POST">
+                <label for="username">Usuário:</label><br>
+                <input type="text" id="username" name="username" required><br>
+                <label for="password">Senha:</label><br>
+                <input type="password" id="password" name="password" required><br><br>
+                <input type="submit" value="Entrar">
+            </form>
+            <a href="/"><button>Voltar</button></a>
+        </div>
     </div>
 </body>
 </html>
@@ -164,12 +278,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camisas - Sistema de Votação</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div>
-        <h1>Camisas</h1>
-        <p>Escolha sua camisa favorita.</p>
-        <a href="/"><button>Voltar</button></a>
+    <nav>
+        <div class="container">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Registro</a>
+            <a href="/admin">Admin</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h1>Camisas</h1>
+            <p>Escolha sua camisa favorita.</p>
+            <div>
+                {{range .Products}}
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3>{{.Name}}</h3>
+                    <p>{{.Description}}</p>
+                </div>
+                {{else}}
+                <p>Nenhuma camisa cadastrada no momento.</p>
+                {{end}}
+            </div>
+            <a href="/"><button>Voltar</button></a>
+        </div>
     </div>
 </body>
 </html>
@@ -195,6 +330,13 @@ import (
 )
 
 var db *sql.DB
+
+type Product struct {
+	ID          int
+	Type        string
+	Name        string
+	Description string
+}
 
 func main() {
 	// Conexão com o banco de dados SQLite
@@ -229,6 +371,53 @@ func main() {
 		panic(err)
 	}
 
+	// Criação da tabela de produtos, se não existir
+	createProductsTable := `
+	CREATE TABLE IF NOT EXISTS products (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT
+	);`
+	_, err = db.Exec(createProductsTable)
+	if err != nil {
+		panic(err)
+	}
+
+	// Criação da tabela de configurações, se não existir (para o número do WhatsApp)
+	createSettingsTable := `
+	CREATE TABLE IF NOT EXISTS settings (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		key TEXT UNIQUE NOT NULL,
+		value TEXT NOT NULL
+	);`
+	_, err = db.Exec(createSettingsTable)
+	if err != nil {
+		panic(err)
+	}
+
+	// Adicionar um administrador padrão se não existir
+	defaultAdminUsername := "admin"
+	defaultAdminPassword := "admin123"
+	var adminCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM admins WHERE username = ?", defaultAdminUsername).Scan(&adminCount)
+	if err != nil {
+		panic(err)
+	}
+	if adminCount == 0 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(defaultAdminPassword), bcrypt.DefaultCost)
+		if err != nil {
+			panic(err)
+		}
+		_, err = db.Exec("INSERT INTO admins (username, password) VALUES (?, ?)", defaultAdminUsername, hashedPassword)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Administrador padrão criado: username=admin, password=admin123")
+	} else {
+		fmt.Println("Administrador padrão já existe.")
+	}
+
 	// Configuração do servidor de arquivos estáticos
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -237,9 +426,13 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/admin/dashboard", adminDashboardHandler)
+	http.HandleFunc("/admin/update_products", adminUpdateProductsHandler)
+	http.HandleFunc("/admin/update_whatsapp", adminUpdateWhatsAppHandler)
 	http.HandleFunc("/camisas", camisasHandler)
 	http.HandleFunc("/canecas", canecasHandler)
 	http.HandleFunc("/registrar", registrarHandler)
+	http.HandleFunc("/whatsapp", whatsappHandler)
 
 	fmt.Println("Servidor rodando em http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
@@ -334,10 +527,58 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Redirecionar para a página inicial com mensagem de sucesso
-		http.Redirect(w, r, "/?message=Login+admin+realizado+com+sucesso", http.StatusSeeOther)
+		// Redirecionar para o painel de administração
+		http.Redirect(w, r, "/admin/dashboard", http.StatusSeeOther)
 		return
 	}
+}
+
+func adminDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl, err := template.ParseFiles("templates/admin_dashboard.html")
+		if err != nil {
+			http.Error(w, "Erro ao carregar o painel de admin", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+		return
+	}
+}
+
+func adminUpdateProductsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		productType := r.FormValue("product_type")
+		productName := r.FormValue("product_name")
+		productDescription := r.FormValue("product_description")
+
+		// Inserir ou atualizar produto no banco de dados
+		_, err := db.Exec("INSERT OR REPLACE INTO products (type, name, description) VALUES (?, ?, ?)", productType, productName, productDescription)
+		if err != nil {
+			http.Error(w, "Erro ao atualizar produto", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/admin/dashboard?message=Produto+atualizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+}
+
+func adminUpdateWhatsAppHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		whatsappNumber := r.FormValue("whatsapp_number")
+
+		// Atualizar número do WhatsApp no banco de dados
+		_, err := db.Exec("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", "whatsapp_number", whatsappNumber)
+		if err != nil {
+			http.Error(w, "Erro ao atualizar número do WhatsApp", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/admin/dashboard?message=Número+do+WhatsApp+atualizado+com+sucesso", http.StatusSeeOther)
+		return
+	}
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 }
 
 func camisasHandler(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +587,31 @@ func camisasHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro ao carregar a página de camisas", http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	rows, err := db.Query("SELECT id, type, name, description FROM products WHERE type = 'camisas'")
+	if err != nil {
+		http.Error(w, "Erro ao buscar produtos", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Type, &p.Name, &p.Description); err != nil {
+			http.Error(w, "Erro ao ler produtos", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
+	data := struct {
+		Products []Product
+	}{
+		Products: products,
+	}
+
+	tmpl.Execute(w, data)
 }
 
 func canecasHandler(w http.ResponseWriter, r *http.Request) {
@@ -355,7 +620,48 @@ func canecasHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro ao carregar a página de canecas", http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	rows, err := db.Query("SELECT id, type, name, description FROM products WHERE type = 'canecas'")
+	if err != nil {
+		http.Error(w, "Erro ao buscar produtos", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Type, &p.Name, &p.Description); err != nil {
+			http.Error(w, "Erro ao ler produtos", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
+	data := struct {
+		Products []Product
+	}{
+		Products: products,
+	}
+
+	tmpl.Execute(w, data)
+}
+
+func whatsappHandler(w http.ResponseWriter, r *http.Request) {
+	var whatsappNumber string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = ?", "whatsapp_number").Scan(&whatsappNumber)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Número do WhatsApp não configurado", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Erro ao buscar número do WhatsApp", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirecionar para o WhatsApp
+	redirectURL := fmt.Sprintf("https://wa.me/%s", whatsappNumber)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func registrarHandler(w http.ResponseWriter, r *http.Request) {
@@ -509,6 +815,133 @@ require golang.org/x/crypto v0.37.0 // indirect
     </script>
 </body>
 </html>
+===== ./static/styles.css =====
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    width: 80%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #2c3e50;
+    text-align: center;
+}
+
+p {
+    text-align: center;
+    font-size: 1.1em;
+}
+
+/* Navigation and Buttons */
+nav {
+    background-color: #2c3e50;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    display: inline-block;
+}
+
+nav a:hover {
+    background-color: #34495e;
+}
+
+button, input[type="submit"] {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover, input[type="submit"]:hover {
+    background-color: #2980b9;
+}
+
+/* Forms */
+form {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+/* Links */
+a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Card Layout for Pages */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+    button, input[type="submit"] {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
 ===== ./handlers/admin.go =====
 package handlers
 

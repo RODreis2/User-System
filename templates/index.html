@@ -3,30 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Votação</title>
+    <title>Loja de Produtos Personalizados</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <nav>
-        <div class="container">
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-            <a href="/register">Registro</a>
-            <a href="/admin">Admin</a>
-        </div>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <h1>Bem-vindo ao sistema de votação</h1>
-            <div>
-                <button onclick="window.location.href='/login'">Login</button>
-                <button onclick="window.location.href='/register'">Registro</button>
-                <button onclick="window.location.href='/camisas'">Camisas</button>
-                <button onclick="window.location.href='/canecas'">Canecas</button>
-                <button onclick="window.location.href='/admin'">Admin</button>
-                <button onclick="window.location.href='/whatsapp'">WhatsApp</button>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="logo">Loja Personalizada</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/produtos">Produtos</a>
+                    <a href="/login">Login</a>
+                    <a href="/registrar">Registro</a>
+                    <a href="/admin">Admin</a>
+                    <a href="/whatsapp" class="whatsapp-btn">Contato WhatsApp</a>
+                    <a href="/carrinho" class="cart-btn">Carrinho (0)</a>
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
+        </nav>
+    </header>
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Produtos Personalizados de Qualidade</h1>
+                <p>Crie e compre itens únicos como camisas, canecas e muito mais!</p>
+                <a href="/produtos" class="btn-primary">Ver Produtos</a>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
         </div>
-    </div>
+    </footer>
+    <script src="/static/scripts.js"></script>
 </body>
 </html>

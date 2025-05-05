@@ -1,6 +1,6 @@
-# Simple Go Web Server
+# Loja de Produtos Personalizados
 
-This is a basic web server written in Go that serves a simple welcome message.
+This is a web application for a virtual store specializing in custom products like mugs, shirts, and other personalized items.
 
 ## Prerequisites
 
@@ -19,4 +19,13 @@ This is a basic web server written in Go that serves a simple welcome message.
 ## Project Structure
 
 - `main.go` - Contains the main web server code
-- `go.mod` - Go module file for dependency management 
+- `go.mod` - Go module file for dependency management
+- `templates/` - HTML templates for the web pages
+- `static/` - Static files like CSS and images
+
+## Features
+
+- Browse custom shirts and mugs
+- Contact via WhatsApp for personalization requests
+- Admin panel to manage products and contact information
+- User registration and login

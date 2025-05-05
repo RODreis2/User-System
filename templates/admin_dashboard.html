@@ -3,46 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Sistema de Votação</title>
+    <title>Painel Admin - Loja de Produtos Personalizados</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <nav>
-        <div class="container">
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-            <a href="/register">Registro</a>
-            <a href="/admin">Admin</a>
-        </div>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <h1>Painel de Controle Admin</h1>
-            <p>Gerencie produtos e configurações do WhatsApp.</p>
-            
-            <h2>Editar Produtos</h2>
-            <form action="/admin/update_products" method="POST">
-                <label for="product_type">Tipo de Produto:</label><br>
-                <select id="product_type" name="product_type" required>
-                    <option value="camisas">Camisas</option>
-                    <option value="canecas">Canecas</option>
-                </select><br>
-                <label for="product_name">Nome do Produto:</label><br>
-                <input type="text" id="product_name" name="product_name" required><br>
-                <label for="product_description">Descrição:</label><br>
-                <textarea id="product_description" name="product_description" rows="3" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;"></textarea><br>
-                <input type="submit" value="Adicionar/Atualizar Produto">
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="logo">Loja Personalizada</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/produtos">Produtos</a>
+                    <a href="/login">Login</a>
+                    <a href="/registrar">Registro</a>
+                    <a href="/admin">Admin</a>
+                    <a href="/whatsapp" class="whatsapp-btn">Contato WhatsApp</a>
+                    <a href="/admin/logout" class="logout-btn">Logout</a>
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <section class="admin-section">
+            <div class="container">
+                <h1>Painel de Administração</h1>
+                <div class="admin-tabs">
+                    <button class="tab-btn active" onclick="openTab('products-tab')">Gerenciar Produtos</button>
+                    <button class="tab-btn" onclick="openTab('whatsapp-tab')">Configuração WhatsApp</button>
+                </div>
+                <div id="products-tab" class="tab-content active">
+                    <div class="admin-card">
+                        <h2>Adicionar Novo Produto</h2>
+                        <form action="/admin/add_product" method="POST" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="product_name">Nome do Produto:</label>
+                                <input type="text" id="product_name" name="product_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="product_type">Tipo:</label>
+                                <select id="product_type" name="product_type" required>
+                                    <option value="camisas">Camisas Personalizadas</option>
+                                    <option value="canecas">Canecas Personalizadas</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="product_price">Preço (R$):</label>
+                                <input type="number" id="product_price" name="product_price" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="product_description">Descrição:</label>
+                                <textarea id="product_description" name="product_description" rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="product_images">Imagens (até 5):</label>
+                                <input type="file" id="product_images" name="product_images" accept="image/*" multiple>
+                            </div>
+                            <button type="submit" class="btn-primary">Adicionar Produto</button>
+                        </form>
+                    </div>
+                    <div class="admin-card">
+                        <h2>Produtos Existentes</h2>
+                        <div class="product-list">
+                            {{range .Products}}
+                            <div class="admin-product-card">
+                                <div class="product-img" style="background-image: url('{{if .Images}}{{index .Images 0}}{{else}}/static/placeholder.jpg{{end}}');"></div>
+                                <div class="product-info">
+                                    <h3>{{.Name}}</h3>
+                                    <p>Tipo: {{.Type}}</p>
+                                    <p>Preço: R$ {{.Price}}</p>
+                                </div>
+                                <div class="product-actions">
+                                    <button class="btn-secondary" onclick="editProduct({{.ID}}, '{{.Name}}', '{{.Type}}', '{{.Description}}', {{.Price}})">Editar</button>
+                                    <button class="btn-danger" onclick="deleteProduct({{.ID}})">Excluir</button>
+                                </div>
+                            </div>
+                            {{else}}
+                            <p>Nenhum produto cadastrado.</p>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+                <div id="whatsapp-tab" class="tab-content">
+                    <div class="admin-card">
+                        <h2>Editar Número do WhatsApp</h2>
+                        <form action="/admin/update_whatsapp" method="POST">
+                            <div class="form-group">
+                                <label for="whatsapp_number">Número do WhatsApp (formato: +5511999999999):</label>
+                                <input type="text" id="whatsapp_number" name="whatsapp_number" placeholder="+5511999999999" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Atualizar Número</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2>Editar Produto</h2>
+            <form action="/admin/edit_product" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="edit_product_id" name="product_id">
+                <div class="form-group">
+                    <label for="edit_product_name">Nome do Produto:</label>
+                    <input type="text" id="edit_product_name" name="product_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_product_type">Tipo:</label>
+                    <select id="edit_product_type" name="product_type" required>
+                        <option value="camisas">Camisas Personalizadas</option>
+                        <option value="canecas">Canecas Personalizadas</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit_product_price">Preço (R$):</label>
+                    <input type="number" id="edit_product_price" name="product_price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_product_description">Descrição:</label>
+                    <textarea id="edit_product_description" name="product_description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="edit_product_images">Novas Imagens (até 5):</label>
+                    <input type="file" id="edit_product_images" name="product_images" accept="image/*" multiple>
+                </div>
+                <button type="submit" class="btn-primary">Salvar Alterações</button>
             </form>
-
-            <h2>Editar Número do WhatsApp</h2>
-            <form action="/admin/update_whatsapp" method="POST">
-                <label for="whatsapp_number">Número do WhatsApp (formato: +5511999999999):</label><br>
-                <input type="text" id="whatsapp_number" name="whatsapp_number" placeholder="+5511999999999" required><br>
-                <input type="submit" value="Atualizar Número do WhatsApp">
-            </form>
-
-            <a href="/"><button>Voltar</button></a>
         </div>
     </div>
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+    <script src="/static/scripts.js"></script>
+    <script>
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        function editProduct(id, name, type, description, price) {
+            document.getElementById('edit_product_id').value = id;
+            document.getElementById('edit_product_name').value = name;
+            document.getElementById('edit_product_type').value = type;
+            document.getElementById('edit_product_description').value = description;
+            document.getElementById('edit_product_price').value = price;
+            document.getElementById('editModal').style.display = 'block';
+        }
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        function deleteProduct(id) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                fetch('/admin/delete_product/' + id, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Erro ao excluir produto.');
+                        }
+                    });
+            }
+        }
+    </script>
 </body>
 </html>

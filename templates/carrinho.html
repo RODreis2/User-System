@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrinho de Compras - Loja de Produtos Personalizados</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <a href="/" class="logo">Loja Personalizada</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/produtos">Produtos</a>
+                    <a href="/login">Login</a>
+                    <a href="/registrar">Registro</a>
+                    <a href="/admin">Admin</a>
+                    <a href="/whatsapp" class="whatsapp-btn">Contato WhatsApp</a>
+                    <a href="/carrinho" class="cart-btn">Carrinho ({{.CartCount}})</a>
+                    {{if .IsLoggedIn}}
+                    <a href="/logout" class="logout-btn">Logout</a>
+                    {{end}}
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <section class="cart-section">
+            <div class="container">
+                <h1>Carrinho de Compras</h1>
+                <div class="cart-list">
+                    {{range .CartItems}}
+                    <div class="cart-item">
+                        <div class="product-img" style="background-image: url('{{if .Images}}{{index .Images 0}}{{else}}/static/placeholder.jpg{{end}}');"></div>
+                        <div class="cart-item-info">
+                            <h3>{{.Name}}</h3>
+                            <p>Preço: R$ {{.Price}}</p>
+                        </div>
+                        <div class="cart-item-actions">
+                            <button class="btn-danger" onclick="removeFromCart({{.ID}})">Remover</button>
+                        </div>
+                    </div>
+                    {{else}}
+                    <p class="no-items">Seu carrinho está vazio.</p>
+                    {{end}}
+                </div>
+                {{if .CartItems}}
+                <div class="cart-total">
+                    <h3>Total: R$ {{.Total}}</h3>
+                    <button class="btn-primary" onclick="checkout()">Finalizar Compra</button>
+                </div>
+                {{end}}
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+    <script src="/static/scripts.js"></script>
+    <script>
+        function removeFromCart(productId) {
+            fetch('/carrinho/remove/' + productId, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro ao remover produto do carrinho.');
+                    }
+                });
+        }
+        function checkout() {
+            fetch('/carrinho/checkout', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        alert('Erro ao finalizar compra. Configure o número do WhatsApp ou faça login.');
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

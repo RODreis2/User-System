@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camisas - Sistema de Votação</title>
+    <title>Camisas Personalizadas - Loja de Produtos</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -17,13 +17,14 @@
     </nav>
     <div class="container">
         <div class="card">
-            <h1>Camisas</h1>
-            <p>Escolha sua camisa favorita.</p>
+            <h1>Camisas Personalizadas</h1>
+            <p>Escolha ou crie sua camisa personalizada.</p>
             <div>
                 {{range .Products}}
                 <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
                     <h3>{{.Name}}</h3>
                     <p>{{.Description}}</p>
+                    <button onclick="window.location.href='/whatsapp'">Solicitar Personalização</button>
                 </div>
                 {{else}}
                 <p>Nenhuma camisa cadastrada no momento.</p>
