@@ -41,7 +41,12 @@
                         <div class="product-img" style="background-image: url('{{if .Images}}{{index .Images 0}}{{else}}/static/placeholder.jpg{{end}}');"></div>
                         <div class="cart-item-info">
                             <h3>{{.Name}}</h3>
-                            <p>Preço: R$ {{.Price}}</p>
+                            <p>Preço Unitário: R$ {{.Price}}</p>
+                            <div class="quantity-control">
+                                <label for="quantity-{{.ID}}">Quantidade:</label>
+                                <input type="number" id="quantity-{{.ID}}" value="{{.Quantity}}" min="1" style="width: 60px; text-align: center;">
+                                <button class="btn-secondary" onclick="updateQuantity({{.ID}}, document.getElementById('quantity-{{.ID}}').value)">Atualizar</button>
+                            </div>
                         </div>
                         <div class="cart-item-actions">
                             <button class="btn-danger" onclick="removeFromCart({{.ID}})">Remover</button>
@@ -78,6 +83,31 @@
                     }
                 });
         }
+
+        function updateQuantity(productId, quantity) {
+            if (quantity < 1) {
+                alert('A quantidade deve ser pelo menos 1.');
+                return;
+            }
+            fetch('/carrinho/update/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'quantity=' + encodeURIComponent(quantity)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector('.cart-total h3').textContent = `Total: R$ ${data.total.toFixed(2)}`;
+                        document.querySelector('.cart-btn').textContent = `Carrinho (${data.cartCount})`;
+                        alert('Quantidade atualizada com sucesso!');
+                    } else {
+                        alert('Erro ao atualizar quantidade no carrinho.');
+                    }
+                });
+        }
+
         function checkout() {
             fetch('/carrinho/checkout', { method: 'POST' })
                 .then(response => response.json())

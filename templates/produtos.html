@@ -37,11 +37,10 @@
                 <h1>Nossos Produtos</h1>
                 <div class="product-grid">
                     {{range .Products}}
-                    <div class="product-card">
+                    <div class="product-card" data-id="{{.ID}}" data-name="{{.Name}}" data-description="{{.Description}}" data-price="{{.Price}}" data-images='{{.Images | json}}'>
                         <div class="product-img" style="background-image: url('{{if .Images}}{{index .Images 0}}{{else}}/static/placeholder.jpg{{end}}');"></div>
                         <h3>{{.Name}}</h3>
                         <p class="price">R$ {{.Price}}</p>
-                        <button class="btn-secondary" onclick="addToCart({{.ID}})">Adicionar ao Carrinho</button>
                     </div>
                     {{else}}
                     <p class="no-products">Nenhum produto cadastrado no momento.</p>
@@ -50,6 +49,19 @@
             </div>
         </section>
     </main>
+    <div id="productModal" class="modal">
+        <div class="modal-content product-modal">
+            <span class="close-btn" onclick="closeProductModal()">&times;</span>
+            <h2 id="modalProductName"></h2>
+            <div class="gallery">
+                <div id="mainImageContainer" class="main-image"></div>
+                <div class="thumbnails" id="thumbnailsContainer"></div>
+            </div>
+            <p id="modalProductDescription"></p>
+            <p class="price" id="modalProductPrice"></p>
+            <button class="btn-secondary" id="addToCartModalBtn" onclick="addToCartFromModal()">Adicionar ao Carrinho</button>
+        </div>
+    </div>
     <footer>
         <div class="container">
             <p>&copy; 2023 Loja de Produtos Personalizados. Todos os direitos reservados.</p>
@@ -57,6 +69,84 @@
     </footer>
     <script src="/static/scripts.js"></script>
     <script>
+        let currentProductId = null;
+        
+        // Custom function to handle JSON conversion for template data
+        function json(data) {
+            return JSON.stringify(data);
+        }
+
+        // Add event listeners to product cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const productCards = document.querySelectorAll('.product-card');
+            productCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const id = parseInt(card.getAttribute('data-id'));
+                    const name = card.getAttribute('data-name');
+                    const description = card.getAttribute('data-description');
+                    const price = parseFloat(card.getAttribute('data-price'));
+                    const images = JSON.parse(card.getAttribute('data-images'));
+                    showProductModal(id, name, description, price, images);
+                });
+            });
+        });
+
+        function showProductModal(id, name, description, price, images) {
+            currentProductId = id;
+            document.getElementById('modalProductName').textContent = name;
+            document.getElementById('modalProductDescription').textContent = description || 'Sem descrição disponível.';
+            document.getElementById('modalProductPrice').textContent = 'R$ ' + price.toFixed(2);
+            
+            // Setup gallery
+            const mainImageContainer = document.getElementById('mainImageContainer');
+            const thumbnailsContainer = document.getElementById('thumbnailsContainer');
+            mainImageContainer.innerHTML = '';
+            thumbnailsContainer.innerHTML = '';
+            
+            if (images && images.length > 0) {
+                // Set the first image as the main image
+                mainImageContainer.style.backgroundImage = `url('${images[0]}')`;
+                // Create thumbnails for all images
+                images.forEach((img, index) => {
+                    const thumb = document.createElement('div');
+                    thumb.classList.add('thumbnail');
+                    thumb.style.backgroundImage = `url('${img}')`;
+                    thumb.onclick = () => {
+                        mainImageContainer.style.backgroundImage = `url('${img}')`;
+                        // Update active thumbnail
+                        document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+                        thumb.classList.add('active');
+                    };
+                    if (index === 0) thumb.classList.add('active');
+                    thumbnailsContainer.appendChild(thumb);
+                });
+            } else {
+                mainImageContainer.style.backgroundImage = `url('/static/placeholder.jpg')`;
+                thumbnailsContainer.innerHTML = '<p>Sem imagens disponíveis.</p>';
+            }
+            
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+            currentProductId = null;
+        }
+
+        function addToCartFromModal() {
+            if (currentProductId) {
+                addToCart(currentProductId);
+            }
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target === modal) {
+                closeProductModal();
+            }
+        }
+
         function addToCart(productId) {
             fetch('/carrinho/add/' + productId, { method: 'POST' })
                 .then(response => response.json())

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -31,6 +32,7 @@ type CartItem struct {
 	Name        string
 	Price       float64
 	Images      []string
+	Quantity    int
 }
 
 func main() {
@@ -105,18 +107,28 @@ func main() {
 		panic(err)
 	}
 
-	// Criação da tabela de carrinho de compras, se não existir
+	// Criação da tabela de carrinho de compras, se não existir, agora com quantidade
 	createCartTable := `
 	CREATE TABLE IF NOT EXISTS cart (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER NOT NULL,
 		product_id INTEGER NOT NULL,
+		quantity INTEGER NOT NULL DEFAULT 1,
 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 		FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 	);`
 	_, err = db.Exec(createCartTable)
 	if err != nil {
 		panic(err)
+	}
+
+	// Migração para adicionar a coluna quantity se não existir
+	alterCartTable := `
+	ALTER TABLE cart ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1;`
+	_, err = db.Exec(alterCartTable)
+	if err != nil {
+		fmt.Println("Nota: Coluna 'quantity' já existe ou erro ao tentar adicionar:", err)
+		// Ignorar erro se a coluna já existir
 	}
 
 	// Criação da tabela de sessões, se não existir
@@ -180,6 +192,7 @@ func main() {
 	http.HandleFunc("/carrinho", carrinhoHandler)
 	http.HandleFunc("/carrinho/add/", carrinhoAddHandler)
 	http.HandleFunc("/carrinho/remove/", carrinhoRemoveHandler)
+	http.HandleFunc("/carrinho/update/", carrinhoUpdateHandler)
 	http.HandleFunc("/carrinho/checkout", carrinhoCheckoutHandler)
 	http.HandleFunc("/logout", logoutHandler)
 
@@ -723,9 +736,22 @@ func adminUpdateWhatsAppHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func produtosHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/produtos.html")
+	// Define custom template functions
+	funcMap := template.FuncMap{
+		"json": func(v interface{}) string {
+			data, err := json.Marshal(v)
+			if err != nil {
+				return "[]"
+			}
+			return string(data)
+		},
+	}
+
+	// Parse the template with custom functions
+	tmpl, err := template.New("produtos.html").Funcs(funcMap).ParseFiles("templates/produtos.html")
 	if err != nil {
 		http.Error(w, "Erro ao carregar a página de produtos", http.StatusInternalServerError)
+		fmt.Println("Error parsing template:", err)
 		return
 	}
 
@@ -785,7 +811,12 @@ func produtosHandler(w http.ResponseWriter, r *http.Request) {
 		IsLoggedIn: isLoggedIn,
 	}
 
-	tmpl.Execute(w, data)
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Erro ao renderizar a página de produtos", http.StatusInternalServerError)
+		fmt.Println("Error executing template:", err)
+		return
+	}
 }
 
 func whatsappHandler(w http.ResponseWriter, r *http.Request) {
@@ -906,22 +937,25 @@ func carrinhoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rows, err := db.Query(`
-			SELECT p.id, p.name, p.price
+			SELECT p.id, p.name, p.price, COALESCE(c.quantity, 1) as quantity
 			FROM cart c
 			JOIN products p ON c.product_id = p.id
 			WHERE c.user_id = ?`, userID)
 		if err != nil {
 			http.Error(w, "Erro ao buscar itens do carrinho", http.StatusInternalServerError)
+			fmt.Println("Error querying cart items:", err)
 			return
 		}
 		defer rows.Close()
 
 		var cartItems []CartItem
 		total := 0.0
+		cartCount := 0
 		for rows.Next() {
 			var item CartItem
-			if err := rows.Scan(&item.ID, &item.Name, &item.Price); err != nil {
+			if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Quantity); err != nil {
 				http.Error(w, "Erro ao ler itens do carrinho", http.StatusInternalServerError)
+				fmt.Println("Error scanning cart item:", err)
 				return
 			}
 			// Buscar imagens do produto
@@ -938,14 +972,8 @@ func carrinhoHandler(w http.ResponseWriter, r *http.Request) {
 				item.Images = append(item.Images, imgPath)
 			}
 			cartItems = append(cartItems, item)
-			total += item.Price
-		}
-
-		// Contar itens no carrinho
-		var cartCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM cart WHERE user_id = ?", userID).Scan(&cartCount)
-		if err != nil {
-			cartCount = 0
+			total += item.Price * float64(item.Quantity)
+			cartCount += item.Quantity
 		}
 
 		data := struct {
@@ -960,7 +988,12 @@ func carrinhoHandler(w http.ResponseWriter, r *http.Request) {
 			IsLoggedIn: true,
 		}
 
-		tmpl.Execute(w, data)
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			http.Error(w, "Erro ao renderizar página do carrinho", http.StatusInternalServerError)
+			fmt.Println("Error executing cart template:", err)
+			return
+		}
 		return
 	}
 	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
@@ -999,17 +1032,34 @@ func carrinhoAddHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Adicionar ao carrinho
-		_, err = db.Exec("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", userID, productID)
-		if err != nil {
+		// Verificar se o produto já está no carrinho
+		var existingQuantity int
+		err = db.QueryRow("SELECT quantity FROM cart WHERE user_id = ? AND product_id = ?", userID, productID).Scan(&existingQuantity)
+		if err == sql.ErrNoRows {
+			// Produto não está no carrinho, adicionar com quantidade 1
+			_, err = db.Exec("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, 1)", userID, productID)
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"success": false, "message": "Erro ao adicionar ao carrinho"}`))
+				return
+			}
+		} else if err == nil {
+			// Produto já está no carrinho, incrementar quantidade
+			_, err = db.Exec("UPDATE cart SET quantity = quantity + 1 WHERE user_id = ? AND product_id = ?", userID, productID)
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"success": false, "message": "Erro ao atualizar quantidade no carrinho"}`))
+				return
+			}
+		} else {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"success": false, "message": "Erro ao adicionar ao carrinho"}`))
+			w.Write([]byte(`{"success": false, "message": "Erro ao verificar carrinho"}`))
 			return
 		}
 
-		// Contar itens no carrinho
+		// Contar itens no carrinho (soma das quantidades)
 		var cartCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM cart WHERE user_id = ?", userID).Scan(&cartCount)
+		err = db.QueryRow("SELECT SUM(quantity) FROM cart WHERE user_id = ?", userID).Scan(&cartCount)
 		if err != nil {
 			cartCount = 0
 		}
@@ -1069,6 +1119,99 @@ func carrinhoRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 }
 
+func carrinhoUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		// Verificar se está logado como usuário
+		sessionCookie, err := r.Cookie("session_uuid")
+		if err != nil || sessionCookie.Value == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Faça login primeiro"}`))
+			return
+		}
+
+		var userID int
+		err = db.QueryRow("SELECT user_id FROM sessions WHERE uuid = ?", sessionCookie.Value).Scan(&userID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Faça login primeiro"}`))
+			return
+		}
+
+		pathParts := strings.Split(r.URL.Path, "/")
+		if len(pathParts) < 4 {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "ID do produto não fornecido"}`))
+			return
+		}
+
+		productIDStr := pathParts[len(pathParts)-1]
+		productID, err := strconv.Atoi(productIDStr)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "ID do produto inválido"}`))
+			return
+		}
+
+		err = r.ParseForm()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Erro ao processar formulário"}`))
+			return
+		}
+
+		quantityStr := r.FormValue("quantity")
+		quantity, err := strconv.Atoi(quantityStr)
+		if err != nil || quantity < 1 {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Quantidade inválida"}`))
+			return
+		}
+
+		// Atualizar quantidade no carrinho
+		_, err = db.Exec("UPDATE cart SET quantity = ? WHERE user_id = ? AND product_id = ?", quantity, userID, productID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Erro ao atualizar quantidade no carrinho"}`))
+			return
+		}
+
+		// Calcular novo total
+		var total float64
+		rows, err := db.Query(`
+			SELECT p.price, c.quantity
+			FROM cart c
+			JOIN products p ON c.product_id = p.id
+			WHERE c.user_id = ?`, userID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"success": false, "message": "Erro ao calcular total"}`))
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var price float64
+			var qty int
+			if err := rows.Scan(&price, &qty); err != nil {
+				continue
+			}
+			total += price * float64(qty)
+		}
+
+		// Contar itens no carrinho (soma das quantidades)
+		var cartCount int
+		err = db.QueryRow("SELECT SUM(quantity) FROM cart WHERE user_id = ?", userID).Scan(&cartCount)
+		if err != nil {
+			cartCount = 0
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(fmt.Sprintf(`{"success": true, "total": %.2f, "cartCount": %d}`, total, cartCount)))
+		return
+	}
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+}
+
 func carrinhoCheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		// Verificar se está logado como usuário
@@ -1103,13 +1246,14 @@ func carrinhoCheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Buscar itens do carrinho
 		rows, err := db.Query(`
-			SELECT p.id, p.name, p.price
+			SELECT p.id, p.name, p.price, COALESCE(c.quantity, 1) as quantity
 			FROM cart c
 			JOIN products p ON c.product_id = p.id
 			WHERE c.user_id = ?`, userID)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"success": false, "message": "Erro ao buscar itens do carrinho"}`))
+			fmt.Println("Error querying cart items for checkout:", err)
 			return
 		}
 		defer rows.Close()
@@ -1119,14 +1263,15 @@ func carrinhoCheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		message := "Olá, gostaria de comprar os seguintes itens:\n"
 		for rows.Next() {
 			var item CartItem
-			if err := rows.Scan(&item.ID, &item.Name, &item.Price); err != nil {
+			if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Quantity); err != nil {
 				continue
 			}
 			cartItems = append(cartItems, item)
-			total += item.Price
-			message += fmt.Sprintf("- %s (R$ %.2f)\n", item.Name, item.Price)
+			itemTotal := item.Price * float64(item.Quantity)
+			total += itemTotal
+			message += fmt.Sprintf("- %s (Quantidade: %d, R$ %.2f cada, Total: R$ %.2f)\n", item.Name, item.Quantity, item.Price, itemTotal)
 		}
-		message += fmt.Sprintf("\nTotal: R$ %.2f", total)
+		message += fmt.Sprintf("\nTotal Geral: R$ %.2f", total)
 
 		// Limpar carrinho após checkout
 		_, err = db.Exec("DELETE FROM cart WHERE user_id = ?", userID)
